@@ -21,8 +21,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
 #include <stdio.h>
+#include <math.h>
+#include "lpf.h"
+#include "sfra.h"
 
 /* USER CODE END Includes */
 
@@ -45,6 +47,8 @@
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
+
+float input_signal_50Hz[4000];
 
 /* USER CODE END PV */
 
@@ -93,7 +97,11 @@ int main(void)
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  printf("Hello world\r\n");
+  for (uint32_t i = 0U; i < 4000; i++) {
+	  input_signal_50Hz[i] = 200.0f * sinf(2.0f * PI * i / 2000.0f);
+  }
+  lpf_init(ac_lpf_p, 5.0f, 100e3f);
+  sfra_init(100e3, 5, 2.0f);
 
   /* USER CODE END 2 */
 
@@ -254,13 +262,7 @@ static void MX_GPIO_Init(void)
 int _write(int file, char *ptr, int len)
 {
   (void)file;
-  int DataIdx;
-
-//  for (DataIdx = 0; DataIdx < len; DataIdx++)
-//  {
-//    __io_putchar(*ptr++);
-	  HAL_UART_Transmit(&huart3, ptr, len, HAL_MAX_DELAY);
-//  }
+	  HAL_UART_Transmit(&huart3, (const uint8_t *)ptr, len, HAL_MAX_DELAY);
   return len;
 }
 

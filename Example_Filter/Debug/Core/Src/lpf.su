@@ -1,0 +1,2 @@
+../Core/Src/lpf.c:13:6:lpf_init	24	static
+../Core/Src/lpf.c:26:6:lpf_update	16	static

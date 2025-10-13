@@ -22,6 +22,8 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "lpf.h"
+#include "sfra.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,6 +59,8 @@
 /* External variables --------------------------------------------------------*/
 
 /* USER CODE BEGIN EV */
+
+extern float input_signal_50Hz[4000];
 
 /* USER CODE END EV */
 
