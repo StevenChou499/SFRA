@@ -1,5 +1,6 @@
 #include "sfra.h"
 #include <string.h>
+#include <math.h>
 
 sfra_t sfra;
 
@@ -15,6 +16,10 @@ uint8_t sfra_init(float sampling_rate_Hz, float freq_start, float freq_step)
 	for (uint8_t i = 0U; i < BODE_PLOT_POINTS; i++) {
 		sfra.freq_table[i] = freq_start * powf(freq_step, (float)i);
 	}
+
+	sfra.current_state = IDLE;
+
+	return 0;
 }
 
 void sfra_inject(void)

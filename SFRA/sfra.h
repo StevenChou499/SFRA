@@ -2,6 +2,12 @@
 
 #define BODE_PLOT_POINTS (10U)
 
+typedef enum {
+	IDLE,
+	SWEEPING,
+	SWEEP_DONE,
+} sfra_state_t;
+
 typedef struct {
 	float mag_in[BODE_PLOT_POINTS];
 	float pha_in[BODE_PLOT_POINTS];
@@ -11,6 +17,7 @@ typedef struct {
 	float freq_step;
 	float freq_table[BODE_PLOT_POINTS];
 	float sampling_freq_Hz;
+	sfra_state_t current_state;
 } sfra_t;
 
 uint8_t sfra_init(float sampling_rate_Hz, float freq_start, float freq_step);
