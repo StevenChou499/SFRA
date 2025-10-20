@@ -101,7 +101,7 @@ int main(void)
 	  input_signal_50Hz[i] = 200.0f * sinf(2.0f * PI * i / 2000.0f);
   }
   lpf_init(ac_lpf_p, 5.0f, 100e3f);
-  sfra_init(100e3, 5, 2.0f);
+  sfra_init(100e3f, 5.0f, 2.0f, 10.0f);
 
   /* USER CODE END 2 */
 
