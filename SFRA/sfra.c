@@ -4,7 +4,7 @@
 #include <math.h>
 
 float sine_table[3600];
-sfra_t sfra_st;
+sfra_t sfra;
 
 uint8_t sfra_init(float sampling_rate_Hz,
 	              float freq_start,
@@ -15,11 +15,11 @@ uint8_t sfra_init(float sampling_rate_Hz,
 		sine_table[i] = sinf(i * 2.0f * PI / 3600.0f);
 	}
 
-	memset(&sfra_st, 0U, sizeof(sfra_t));
-	sfra_st.sampling_freq_Hz = sampling_rate_Hz;
-	sfra_st.freq_start = freq_start;
-	sfra_st.freq_step = freq_step;
-	sfra_st.inject_amplitude = input_amplitude;
+	memset(&sfra, 0U, sizeof(sfra_t));
+	sfra.sampling_freq_Hz = sampling_rate_Hz;
+	sfra.freq_start = freq_start;
+	sfra.freq_step = freq_step;
+	sfra.inject_amplitude = input_amplitude;
 
 	float freq_limit = sampling_rate_Hz / 2.0f;
 	float freq_exp = 1.0f;
@@ -27,11 +27,11 @@ uint8_t sfra_init(float sampling_rate_Hz,
 		float samp_freq = freq_start * freq_exp;
 		if (samp_freq >= freq_limit)
 			return -1;
-		sfra_st.freq_table[i] = samp_freq;
+		sfra.freq_table[i] = samp_freq;
 		freq_exp *= freq_step;
 	}
 
-	sfra_st.current_state = IDLE;
+	sfra.current_state = IDLE;
 
 	return 0;
 }
@@ -45,23 +45,26 @@ uint32_t sfra_get_sample_count(float sampling_rate_Hz, float target_freq_Hz)
 		return (uint32_t) (cycle_sample_pts * 10);  // sample for 10 cycles
 }
 
-void sfra_inject(float *input)
+float sfra_inject(float input)
 {
-	if (sfra_st.current_state != SWEEPING)
-		return;
+	if (sfra.current_state != SWEEPING)
+		return -1.0f;
 
-	*input += sfra_st.inject_amplitude * sinf(sfra_st.current_angle);
-	sfra_st.input_count++;
+	input += sfra.inject_amplitude * sinf(sfra.current_angle);
+	sfra.input_count++;
+	return input;
 }
 
 void sfra_collect(float *output)
 {
-	if (sfra_st.current_state != SWEEPING)
+	if (sfra.current_state != SWEEPING)
 		return;
-	if (sfra_st.output_count != (sfra_st.input_count - 1))
+	if (sfra.output_count != (sfra.input_count - 1))
 		return;
 
-	sfra_st.real_part += *output * cosf(sfra_st.current_angle);
-	sfra_st.imag_part -= *output * sinf(sfra_st.current_angle);
-	sfra_st.output_count++;
+	sfra.real_part += *output * cosf(sfra.current_angle);
+	sfra.imag_part -= *output * sinf(sfra.current_angle);
+	sfra.current_angle +=
+			sfra.freq_table[sfra.current_freq_index] * 2.0f * PI / sfra.sampling_freq_Hz;
+	sfra.output_count++;
 }

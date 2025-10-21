@@ -23,12 +23,13 @@ void lpf_init(lpf_t *lpf, float cut_off_freq_Hz, float samp_rate)
 	lpf->last_output = 0.0f;
 }
 
-void lpf_update(lpf_t *lpf, float new_input)
+void lpf_update(lpf_t *lpf, float new_input, float *output)
 {
 	lpf->input = new_input;
 	lpf->output = lpf->b0 * lpf->input +
 			      lpf->b1 * lpf->last_input -
 				  lpf->a1 * lpf->last_output;
+	*output = lpf->output;
 
 	lpf->last_input = lpf->input;
 	lpf->last_output = lpf->output;

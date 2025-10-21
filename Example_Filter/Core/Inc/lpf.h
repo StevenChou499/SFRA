@@ -31,6 +31,6 @@ typedef struct {
 extern lpf_t *ac_lpf_p;
 
 void lpf_init(lpf_t *lpf, float cut_off_freq_Hz, float samp_rate);
-void lpf_update(lpf_t *lpf, float new_input);
+void lpf_update(lpf_t *lpf, float new_input, float *output);
 
 #endif /* INC_LPF_H_ */

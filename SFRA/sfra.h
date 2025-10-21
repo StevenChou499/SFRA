@@ -9,7 +9,7 @@ typedef enum {
 	SWEEP_DONE,
 } sfra_state_t;
 
-typedef struct sfra {
+typedef struct sfra_st {
 	float mag_in[MAX_POINTS];
 	float pha_in[MAX_POINTS];
 	float mag_out[MAX_POINTS];
@@ -30,12 +30,12 @@ typedef struct sfra {
 	sfra_state_t current_state;
 } sfra_t;
 
-extern sfra_t sfra_st;
+extern sfra_t sfra;
 
 uint8_t sfra_init(float sampling_rate_Hz,
 	              float freq_start,
 				  float freq_step,
 				  float input_amplitude);
 uint32_t sfra_get_sample_count(float sampling_rate_Hz, float target_freq_Hz);
-void sfra_inject(float *input);
+float sfra_inject(float input);
 void sfra_collect(float *output);
