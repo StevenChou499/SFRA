@@ -48,7 +48,7 @@ uint32_t sfra_get_sample_count(float sampling_rate_Hz, float target_freq_Hz)
 float sfra_inject(float input)
 {
 	if (sfra.current_state != SWEEPING)
-		return -1.0f;
+		return input;
 
 	input += sfra.inject_amplitude * sinf(sfra.current_angle);
 	sfra.input_count++;
@@ -59,7 +59,7 @@ void sfra_collect(float *output)
 {
 	if (sfra.current_state != SWEEPING)
 		return;
-	if (sfra.output_count != (sfra.input_count - 1))
+	if (sfra.output_count != (sfra.input_count - 1U))
 		return;
 
 	sfra.real_part += *output * cosf(sfra.current_angle);
@@ -67,4 +67,6 @@ void sfra_collect(float *output)
 	sfra.current_angle +=
 			sfra.freq_table[sfra.current_freq_index] * 2.0f * PI / sfra.sampling_freq_Hz;
 	sfra.output_count++;
+	if (sfra.output_count == sfra.total_count)
+		sfra.current_state = SWEEP_DONE;
 }

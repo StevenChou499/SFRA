@@ -103,14 +103,19 @@ int main(void)
   sfra_init(100e3f, 5.0f, 2.0f, 10.0f);
 
   HAL_TIM_Base_Start_IT(&htim1);
-
+  HAL_Delay(1000);
+  sfra.total_count = 1000U;
+  sfra.current_state = SWEEPING;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  sfra.current_state = SWEEPING;
+	  if (sfra.current_state == SWEEP_DONE) {
+		  printf("Sweeping done.\r\n");
+		  sfra.current_state = SFRA_DONE;
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

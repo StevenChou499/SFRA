@@ -7,27 +7,28 @@ typedef enum {
 	GEN_TABLE,
 	SWEEPING,
 	SWEEP_DONE,
+	SFRA_DONE,
 } sfra_state_t;
 
 typedef struct sfra_st {
-	float mag_in[MAX_POINTS];
-	float pha_in[MAX_POINTS];
-	float mag_out[MAX_POINTS];
-	float pha_out[MAX_POINTS];
-	float real_part;
-	float imag_part;
-	float freq_start;
-	float freq_step;
-	uint32_t freq_points;
-	float freq_table[MAX_POINTS];
-	uint32_t current_freq_index;
-	float current_angle;
-	float inject_amplitude;
-	uint32_t input_count;
-	uint32_t output_count;
-	uint32_t total_count;
-	float sampling_freq_Hz;
-	sfra_state_t current_state;
+	float mag_in[MAX_POINTS];       // Input magnitude
+	float pha_in[MAX_POINTS];       // Input phase
+	float mag_out[MAX_POINTS];      // Output magnitude
+	float pha_out[MAX_POINTS];      // Output phase
+	float real_part;                // Real part of the complex for calculation
+	float imag_part;                // Imaginary part of the complex for calculation
+	float freq_start;               // Starting sweeping frequency
+	float freq_step;                // Frequency between every sweep
+	uint32_t freq_points;           // Total sweeping frequency points
+	float freq_table[MAX_POINTS];   // All the sweeping frequencies in table
+	uint32_t current_freq_index;    // Current sweeping frequency index
+	float current_angle;            // SFRA current sweeping angle
+	float inject_amplitude;         // Input amplitude for every sweep
+	uint32_t input_count;           // Number of points injected in a single sweep
+	uint32_t output_count;          // Number of points collected in a single sweep
+	uint32_t total_count;           // Number of points total needed in a single sweep
+	float sampling_freq_Hz;         // SFRA's sampling frequency
+	sfra_state_t current_state;     // SFRA's current state
 } sfra_t;
 
 extern sfra_t sfra;
