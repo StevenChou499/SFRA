@@ -23,14 +23,18 @@ uint8_t sfra_init(float sampling_rate_Hz,
 
 	float freq_limit = sampling_rate_Hz / 2.0f;
 	float freq_exp = 1.0f;
-	for (uint8_t i = 0U; i < MAX_POINTS; i++) {
+	uint32_t index = 0U;
+	for (; index < MAX_POINTS; index++) {
 		float samp_freq = freq_start * freq_exp;
-		if (samp_freq >= freq_limit)
+		if (samp_freq >= freq_limit) {
+			sfra.freq_points = index;
+			sfra.current_state = IDLE;
 			return -1;
-		sfra.freq_table[i] = samp_freq;
+		}
+		sfra.freq_table[index] = samp_freq;
 		freq_exp *= freq_step;
 	}
-
+	sfra.freq_points = index;
 	sfra.current_state = IDLE;
 
 	return 0;

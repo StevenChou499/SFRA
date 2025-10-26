@@ -99,12 +99,13 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
-  lpf_init(ac_lpf_p, 5.0f, 100e3f);
+  lpf_init(ac_lpf_p, 500.0f, 100e3f);
   sfra_init(100e3f, 5.0f, 2.0f, 10.0f);
 
   HAL_TIM_Base_Start_IT(&htim1);
   HAL_Delay(1000);
-  sfra.total_count = 1000U;
+//  sfra.total_count = 5000U;
+  sfra.total_count = sfra_get_sample_count(100e3f, 5.0f);
   sfra.current_state = SWEEPING;
   /* USER CODE END 2 */
 
@@ -114,7 +115,18 @@ int main(void)
   {
 	  if (sfra.current_state == SWEEP_DONE) {
 		  printf("Sweeping done.\r\n");
-		  sfra.current_state = SFRA_DONE;
+		  if (sfra.current_freq_index < sfra.freq_points - 1) {
+			  sfra.pha_out[sfra.current_freq_index] =
+			  				  atanf(sfra.imag_part / sfra.real_part) / PI * 180.0f;
+			  sfra.current_freq_index++;
+			  sfra.total_count = sfra_get_sample_count(100e3f, sfra.freq_table[sfra.current_freq_index]);
+			  sfra.input_count = 0U;
+			  sfra.output_count = 0U;
+			  sfra.current_state = SWEEPING;
+		  } else {
+			  sfra.current_state = SFRA_DONE;
+		  }
+
 	  }
     /* USER CODE END WHILE */
 

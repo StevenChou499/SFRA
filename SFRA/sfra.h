@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#define MAX_POINTS (100U)
+#define MAX_POINTS (20U)
 
 typedef enum {
 	IDLE,

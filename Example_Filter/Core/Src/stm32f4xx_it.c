@@ -210,6 +210,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 	static float output = 0.0f;
 	input = sfra_inject(input);
 	lpf_update(ac_lpf_p, input, &output);
+	output = input;
 	sfra_collect(&output);
 
   /* USER CODE END TIM1_UP_TIM10_IRQn 0 */
