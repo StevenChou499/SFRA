@@ -18,11 +18,11 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include <filter.h>
 #include "main.h"
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "lpf.h"
 #include "sfra.h"
 /* USER CODE END Includes */
 
@@ -206,13 +206,13 @@ void SysTick_Handler(void)
 void TIM1_UP_TIM10_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_UP_TIM10_IRQn 0 */
-	float input = 0.0f;
-	static float output = 0.0f;
-	input = sfra_inject(input);
-	lpf_update(ac_lpf_p, input, &output);
-	output = input;
-	sfra_collect(&output);
-
+  float input = 0.0f;
+  static float output = 0.0f;
+  input = sfra_inject(input);
+//  lpf_update(ac_lpf_p, input, &output);
+//  pi_update(ac_pi_p, input, &output);
+  pd_update(ac_pd_p, input, &output);
+  sfra_collect(&output);
   /* USER CODE END TIM1_UP_TIM10_IRQn 0 */
   HAL_TIM_IRQHandler(&htim1);
   /* USER CODE BEGIN TIM1_UP_TIM10_IRQn 1 */

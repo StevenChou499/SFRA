@@ -40,3 +40,4 @@ uint8_t sfra_init(float sampling_rate_Hz,
 uint32_t sfra_get_sample_count(float sampling_rate_Hz, float target_freq_Hz);
 float sfra_inject(float input);
 void sfra_collect(float *output);
+void sfra_update(void);

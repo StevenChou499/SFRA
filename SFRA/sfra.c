@@ -44,9 +44,9 @@ uint32_t sfra_get_sample_count(float sampling_rate_Hz, float target_freq_Hz)
 {
 	float cycle_sample_pts = sampling_rate_Hz / target_freq_Hz;
 	if (cycle_sample_pts <= 20.0f)
-		return (uint32_t) (cycle_sample_pts * 100); // sample for 100 cycles
+		return (uint32_t) (cycle_sample_pts * 200); // sample for 200 cycles
 	else
-		return (uint32_t) (cycle_sample_pts * 10);  // sample for 10 cycles
+		return (uint32_t) (cycle_sample_pts * 20);  // sample for 20 cycles
 }
 
 float sfra_inject(float input)
@@ -70,7 +70,31 @@ void sfra_collect(float *output)
 	sfra.imag_part -= *output * sinf(sfra.current_angle);
 	sfra.current_angle +=
 			sfra.freq_table[sfra.current_freq_index] * 2.0f * PI / sfra.sampling_freq_Hz;
+	if (sfra.current_angle > 2.0f * PI)
+		sfra.current_angle -= 2.0f * PI;
 	sfra.output_count++;
 	if (sfra.output_count == sfra.total_count)
 		sfra.current_state = SWEEP_DONE;
+}
+
+void sfra_update(void)
+{
+	if (sfra.current_state == SWEEP_DONE) {
+	  	sfra.pha_out[sfra.current_freq_index] =
+	  			atan2f(sfra.imag_part, sfra.real_part) / PI * 180.0f + 90.0f;
+	  	sfra.mag_out[sfra.current_freq_index] =
+	  			20.0f * log10f(sqrtf(sfra.real_part * sfra.real_part + sfra.imag_part * sfra.imag_part) / sfra.total_count * 2.0f / sfra.inject_amplitude);
+	  	if (sfra.current_freq_index < sfra.freq_points - 1) {
+	  		sfra.current_freq_index++;
+	  		sfra.total_count = sfra_get_sample_count(100e3f, sfra.freq_table[sfra.current_freq_index]);
+	  		sfra.input_count = 0U;
+	  		sfra.output_count = 0U;
+	  		sfra.real_part = 0.0f;
+	  		sfra.imag_part = 0.0f;
+	  		sfra.current_angle = 0.0f;
+	  		sfra.current_state = SWEEPING;
+	    } else {
+	  	  sfra.current_state = SFRA_DONE;
+	    }
+	}
 }

@@ -17,13 +17,13 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <filter.h>
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <math.h>
-#include "lpf.h"
 #include "sfra.h"
 
 /* USER CODE END Includes */
@@ -99,8 +99,10 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
-  lpf_init(ac_lpf_p, 500.0f, 100e3f);
-  sfra_init(100e3f, 5.0f, 2.0f, 10.0f);
+//  lpf_init(ac_lpf_p, 200.0f, 100e3f);
+//  pi_init(ac_pi_p, 2.0f, 500.0f, 100e3f);
+  pd_init(ac_pd_p, 2.0f, 0.002f, 100e3f);
+  sfra_init(100e3f, 5.0f, 1.54119f, 10.0f);
 
   HAL_TIM_Base_Start_IT(&htim1);
   HAL_Delay(1000);
@@ -113,21 +115,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if (sfra.current_state == SWEEP_DONE) {
-		  printf("Sweeping done.\r\n");
-		  if (sfra.current_freq_index < sfra.freq_points - 1) {
-			  sfra.pha_out[sfra.current_freq_index] =
-			  				  atanf(sfra.imag_part / sfra.real_part) / PI * 180.0f;
-			  sfra.current_freq_index++;
-			  sfra.total_count = sfra_get_sample_count(100e3f, sfra.freq_table[sfra.current_freq_index]);
-			  sfra.input_count = 0U;
-			  sfra.output_count = 0U;
-			  sfra.current_state = SWEEPING;
-		  } else {
-			  sfra.current_state = SFRA_DONE;
-		  }
-
-	  }
+	  sfra_update();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
