@@ -5,6 +5,8 @@
 
 float sine_table[3600];
 sfra_t sfra;
+uint8_t tx_buffer[400];
+uint8_t rx_buffer[10];
 
 uint8_t sfra_init(float sampling_rate_Hz,
 	              float freq_start,

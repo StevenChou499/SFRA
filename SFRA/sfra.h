@@ -10,6 +10,12 @@ typedef enum {
 	SFRA_DONE,
 } sfra_state_t;
 
+typedef enum {
+	START_SWEEP = 0x1,
+	GET_STATUS  = 0x2,
+	GET_BODE    = 0x3,
+} sfra_cmd_t;
+
 typedef struct sfra_st {
 	float mag_in[MAX_POINTS];       // Input magnitude
 	float pha_in[MAX_POINTS];       // Input phase
