@@ -105,9 +105,7 @@ int main(void)
 
   HAL_TIM_Base_Start_IT(&htim1);
   HAL_Delay(1000);
-//  sfra.total_count = 5000U;
-  sfra.total_count = sfra_get_sample_count(100e3f, 5.0f);
-  sfra.current_state = SWEEPING;
+  HAL_UART_Receive_DMA(&huart3, rx_buffer, 2U);
   /* USER CODE END 2 */
 
   /* Infinite loop */

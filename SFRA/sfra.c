@@ -2,11 +2,16 @@
 #include "fourier.h"
 #include <string.h>
 #include <math.h>
+// MCU specific includes
+#include "stm32f4xx_hal.h"
 
 float sine_table[3600];
 sfra_t sfra;
-uint8_t tx_buffer[400];
+
+uint8_t tx_buffer[200];
 uint8_t rx_buffer[10];
+uint32_t tx_len;
+uint8_t rx_len;
 
 uint8_t sfra_init(float sampling_rate_Hz,
 	              float freq_start,
@@ -81,6 +86,39 @@ void sfra_collect(float *output)
 
 void sfra_update(void)
 {
+	// update current state from new command
+	if (sfra.received_cmd) {
+		tx_buffer[0] = 0xBB;
+		tx_buffer[1] = sfra.received_cmd;
+		tx_len = 2U;
+		switch (sfra.received_cmd) {
+		case SFRA_RESET:
+			sfra.current_state = IDLE;
+
+			break;
+		case START_SWEEP:
+			if (sfra.current_state == IDLE) {
+				sfra_init(IRQ_SAMP_FREQ, 5.0f, 1.54119f, 10.0f);
+				sfra.current_state = SWEEPING;
+			}
+			break;
+		case GET_STATUS:
+			break;
+		case GET_BODE:
+			break;
+		default:
+			break;
+		}
+
+		tx_buffer[tx_len] = 0U;
+		for (uint32_t i = 0; i < tx_len; i++) {
+			tx_buffer[tx_len] ^= tx_buffer[i];
+		}
+		HAL_UART_Transmit_DMA(&huart3, tx_buffer, tx_len);
+		sfra.received_cmd = NO_CMD;
+		HAL_UART_Receive_DMA(&huart3, rx_buffer, 2U);
+	}
+
 	if (sfra.current_state == SWEEP_DONE) {
 	  	sfra.pha_out[sfra.current_freq_index] =
 	  			atan2f(sfra.imag_part, sfra.real_part) / PI * 180.0f + 90.0f;
@@ -98,5 +136,24 @@ void sfra_update(void)
 	    } else {
 	  	  sfra.current_state = SFRA_DONE;
 	    }
+	}
+}
+
+
+/*
+ * MCU specific serial functions
+ */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if (WAIT_HEAD == sfra.rx_state) {
+		if (rx_buffer[0] != 0xAA)
+			return;
+		if (rx_buffer[1] == 0U)
+			return;
+		HAL_UART_Receive_DMA(&huart3, rx_buffer + 2, rx_buffer[1]);
+		sfra.rx_state = WAIT_PAYLOAD;
+	} else { // WAIT_PAYLOAD == sfra.rx_state
+		sfra.received_cmd = rx_buffer[1];
+		sfra.rx_state = REPLY_CMD;
 	}
 }
