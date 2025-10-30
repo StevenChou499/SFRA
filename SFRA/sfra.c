@@ -87,37 +87,8 @@ void sfra_collect(float *output)
 void sfra_update(void)
 {
 	// update current state from new command
-	if (sfra.received_cmd) {
-		tx_buffer[0] = 0xBB;
-		tx_buffer[1] = sfra.received_cmd;
-		tx_len = 2U;
-		switch (sfra.received_cmd) {
-		case SFRA_RESET:
-			sfra.current_state = IDLE;
-
-			break;
-		case START_SWEEP:
-			if (sfra.current_state == IDLE) {
-				sfra_init(IRQ_SAMP_FREQ, 5.0f, 1.54119f, 10.0f);
-				sfra.current_state = SWEEPING;
-			}
-			break;
-		case GET_STATUS:
-			break;
-		case GET_BODE:
-			break;
-		default:
-			break;
-		}
-
-		tx_buffer[tx_len] = 0U;
-		for (uint32_t i = 0; i < tx_len; i++) {
-			tx_buffer[tx_len] ^= tx_buffer[i];
-		}
-		HAL_UART_Transmit_DMA(&huart3, tx_buffer, tx_len);
-		sfra.received_cmd = NO_CMD;
-		HAL_UART_Receive_DMA(&huart3, rx_buffer, 2U);
-	}
+	if (sfra.received_cmd)
+		cmd_table[sfra.received_cmd].cmd_handler(rx_buffer + 2);
 
 	if (sfra.current_state == SWEEP_DONE) {
 	  	sfra.pha_out[sfra.current_freq_index] =
@@ -139,6 +110,40 @@ void sfra_update(void)
 	}
 }
 
+void sfra_reset(uint8_t *payload)
+{
+	return;
+}
+
+void sfra_start_sweep(uint8_t *payload)
+{
+	return;
+}
+
+void sfra_get_status(uint8_t *payload)
+{
+	return;
+}
+
+void sfra_get_bode(uint8_t *payload)
+{
+	return;
+}
+
+void sfra_set_start_freq(uint8_t *payload)
+{
+	return;
+}
+
+void sfra_set_step_freq(uint8_t *payload)
+{
+	return;
+}
+
+void sfra_set_samp_freq(uint8_t *payload)
+{
+	return;
+}
 
 /*
  * MCU specific serial functions
@@ -150,7 +155,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			return;
 		if (rx_buffer[1] == 0U)
 			return;
-		HAL_UART_Receive_DMA(&huart3, rx_buffer + 2, rx_buffer[1]);
+
+		uint16_t payload_len = cmd_table[rx_buffer[1]].payload_len;
+		HAL_UART_Receive_DMA(&huart3, rx_buffer + 2, payload_len);
 		sfra.rx_state = WAIT_PAYLOAD;
 	} else { // WAIT_PAYLOAD == sfra.rx_state
 		sfra.received_cmd = rx_buffer[1];

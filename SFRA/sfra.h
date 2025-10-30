@@ -15,7 +15,26 @@ typedef enum sfra_cmd {
 	START_SWEEP,
 	GET_STATUS,
 	GET_BODE,
+	SET_START_FREQ,
+	SET_STEP_FREQ,
+	SET_SAMP_FREQ,
 } sfra_cmd_t;
+
+typedef struct cmd_format {
+	uint8_t cmd_id;                 // Command ID
+	uint8_t payload_len;            // Length of pay-load
+	void (*cmd_handler)(uint8_t *payload);
+} cmd_format_t;
+
+const cmd_format_t cmd_table[] = {
+	{ SFRA_RESET    , 1U, sfra_reset       },
+	{ START_SWEEP   , 1U, sfra_start_sweep },
+	{ GET_STATUS    , 1U, sfra_get_status  },
+	{ GET_BODE      , 1U, sfra_get_bode    },
+	{ SET_START_FREQ, 4U, sfra_start_sweep },
+	{ SET_STEP_FREQ , 4U, sfra_start_sweep },
+	{ SET_SAMP_FREQ , 4U, sfra_start_sweep },
+};
 
 typedef enum sfra_state {
 	IDLE,
@@ -24,14 +43,6 @@ typedef enum sfra_state {
 	SWEEP_DONE,
 	SFRA_DONE,
 } sfra_state_t;
-
-uint8_t tx_cmd_table[][] = {
-		{ 0xBB, 0x00, },    // No use
-		{ 0xBB, 0x01, },    // SFRA_RESET ACK
-		{ 0xBB, 0x02, },    // START_SWEEP ACK
-		{ 0xBB, 0x03, },    // GET_STATUS ACK
-		{ 0xBB, 0x04, },    // GET_BODE ACK
-};
 
 typedef struct sfra_st {
 	float mag_in[MAX_POINTS];       // Input magnitude
@@ -70,3 +81,12 @@ uint32_t sfra_get_sample_count(float sampling_rate_Hz, float target_freq_Hz);
 float sfra_inject(float input);
 void sfra_collect(float *output);
 void sfra_update(void);
+
+/* Command related handler functions */
+void sfra_reset(uint8_t *payload);
+void sfra_start_sweep(uint8_t *payload);
+void sfra_get_status(uint8_t *payload);
+void sfra_get_bode(uint8_t *payload);
+void sfra_set_start_freq(uint8_t *payload);
+void sfra_set_step_freq(uint8_t *payload);
+void sfra_set_samp_freq(uint8_t *payload);
