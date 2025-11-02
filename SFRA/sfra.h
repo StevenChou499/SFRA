@@ -18,27 +18,31 @@ typedef enum sfra_cmd {
 	SET_START_FREQ,
 	SET_STEP_FREQ,
 	SET_SAMP_FREQ,
+	SET_INPUT_AMP,
 } sfra_cmd_t;
 
+typedef enum ack_cmd {
+	ACK,
+	NACK,
+} ack_cmd_t;
+
+typedef struct ack_nack_packet {
+	uint8_t header;
+	uint8_t cmd;
+	uint8_t len;
+	uint8_t nack;
+	uint8_t checksum;
+} ack_nack_packet_t;
+
 typedef struct cmd_format {
-	uint8_t cmd_id;                 // Command ID
+	sfra_cmd_t cmd_id;              // Command ID
 	uint8_t payload_len;            // Length of pay-load
 	void (*cmd_handler)(uint8_t *payload);
 } cmd_format_t;
 
-const cmd_format_t cmd_table[] = {
-	{ SFRA_RESET    , 1U, sfra_reset       },
-	{ START_SWEEP   , 1U, sfra_start_sweep },
-	{ GET_STATUS    , 1U, sfra_get_status  },
-	{ GET_BODE      , 1U, sfra_get_bode    },
-	{ SET_START_FREQ, 4U, sfra_start_sweep },
-	{ SET_STEP_FREQ , 4U, sfra_start_sweep },
-	{ SET_SAMP_FREQ , 4U, sfra_start_sweep },
-};
-
 typedef enum sfra_state {
 	IDLE,
-	GEN_TABLE,
+	SFRA_INIT,
 	SWEEPING,
 	SWEEP_DONE,
 	SFRA_DONE,
@@ -68,21 +72,22 @@ typedef struct sfra_st {
 } sfra_t;
 
 extern sfra_t sfra;
-extern uint8_t tx_buffer[200];
-extern uint8_t rx_buffer[20];
+extern uint8_t tx_buffer[500];
+extern uint8_t rx_buffer[10];
 extern uint32_t tx_len;
 extern uint8_t rx_len;
 
-uint8_t sfra_init(float sampling_rate_Hz,
-	              float freq_start,
-				  float freq_step,
-				  float input_amplitude);
+int8_t sfra_init(float sampling_rate_Hz,
+	             float freq_start,
+				 float freq_step,
+				 float input_amplitude);
 uint32_t sfra_get_sample_count(float sampling_rate_Hz, float target_freq_Hz);
 float sfra_inject(float input);
 void sfra_collect(float *output);
 void sfra_update(void);
 
 /* Command related handler functions */
+void null_handler(uint8_t *payload);
 void sfra_reset(uint8_t *payload);
 void sfra_start_sweep(uint8_t *payload);
 void sfra_get_status(uint8_t *payload);
@@ -90,3 +95,7 @@ void sfra_get_bode(uint8_t *payload);
 void sfra_set_start_freq(uint8_t *payload);
 void sfra_set_step_freq(uint8_t *payload);
 void sfra_set_samp_freq(uint8_t *payload);
+void sfra_set_input_amp(uint8_t *payload);
+
+void sfra_ret_ack(sfra_cmd_t command);
+void sfra_ret_nack(sfra_cmd_t command);

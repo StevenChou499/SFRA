@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <math.h>
 #include "sfra.h"
+#include "filter.h"
 
 /* USER CODE END Includes */
 
@@ -46,6 +47,8 @@
 TIM_HandleTypeDef htim1;
 
 UART_HandleTypeDef huart3;
+DMA_HandleTypeDef hdma_usart3_tx;
+DMA_HandleTypeDef hdma_usart3_rx;
 
 /* USER CODE BEGIN PV */
 
@@ -54,6 +57,7 @@ UART_HandleTypeDef huart3;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
@@ -94,6 +98,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART3_UART_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
@@ -105,7 +110,7 @@ int main(void)
 
   HAL_TIM_Base_Start_IT(&htim1);
   HAL_Delay(1000);
-  HAL_UART_Receive_DMA(&huart3, rx_buffer, 2U);
+  HAL_UART_Receive_DMA(&huart3, rx_buffer, 3U);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -249,6 +254,25 @@ static void MX_USART3_UART_Init(void)
   /* USER CODE BEGIN USART3_Init 2 */
 
   /* USER CODE END USART3_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+  /* DMA1_Stream3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
 
 }
 
