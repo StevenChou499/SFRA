@@ -9,6 +9,12 @@ from tkinter import ttk
 from tkinter import messagebox
 
 class sfra_host:
+    IDLE = 0
+    SFRA_INIT = 1
+    SWEEPING = 2
+    SWEEP_DONE = 3
+    SFRA_DONE = 4
+
     def __init__(self, master):
         self.master = master
         self.master.title("SFRA Host")
@@ -27,8 +33,10 @@ class sfra_host:
         self.step_freq = tk.StringVar(value="1.5")
         self.samp_freq = tk.StringVar(value="10000")
         self.inject_amplitude = tk.StringVar(value="2")
+        self.sfra_status = self.IDLE
 
         self.create_layout()
+        self.timer_loop()
     
     def create_layout(self):
         # Serial
@@ -43,6 +51,32 @@ class sfra_host:
         self.start_freq_label.place(x=10, y=50)
         self.start_freq_box = ttk.Entry(self.master, textvariable=self.start_freq, width=15)
         self.start_freq_box.place(x=10, y=70)
+        self.step_freq_label = ttk.Label(self.master, text="Step Frequency (Hz):")
+        self.step_freq_label.place(x=10, y=95)
+        self.step_freq_box = ttk.Entry(self.master, textvariable=self.step_freq, width=15)
+        self.step_freq_box.place(x=10, y=115)
+        self.samp_freq_label = ttk.Label(self.master, text="Sampling Frequency (Hz):")
+        self.samp_freq_label.place(x=10, y=140)
+        self.samp_freq_box = ttk.Entry(self.master, textvariable=self.samp_freq, width=15)
+        self.samp_freq_box.place(x=10, y=160)
+        self.inject_amp_label = ttk.Label(self.master, text="Inject Amplitude")
+        self.inject_amp_label.place(x=10, y=185)
+        self.inject_amp_box = ttk.Entry(self.master, textvariable=self.inject_amplitude, width=15)
+        self.inject_amp_box.place(x=10, y=205)
+        self.status_label = ttk.Label(self.master, text="IDLE", font=("Arial", 16, "bold italic"), width=30)
+        self.status_label.place(x=10, y=250)
+        self.start_btn = ttk.Button(
+            self.master, 
+            text="Start", 
+            width=20, 
+            command=self.start_sfra)
+        self.start_btn.place(x=10, y=300)
+        self.stop_btn = ttk.Button(
+            self.master, 
+            text="Reset/Stop", 
+            width=20, 
+            command=self.stop_sfra)
+        self.stop_btn.place(x=10, y=325)
     
     def list_comports(self, e):
         """Shows the available ports when combobox is clicked"""
@@ -74,6 +108,47 @@ class sfra_host:
             self.com_list.config(state="enabled")
             self.connect_btn['text'] = "Connect"
             self.ser.close()
+    
+    def start_sfra(self):
+        if self.connected == False:
+            return
+        frame = bytes([0xAA, 0x02, 0x01, 0xA8])
+        self.ser.write(frame)
+        ret = self.ser.read(5)
+        print(ret)
+    
+    def stop_sfra(self):
+        if self.connected == False:
+            return
+        frame = bytes([0xAA, 0x01, 0x01, 0xAA])
+        self.ser.write(frame)
+        ret = self.ser.read(5)
+        print(ret)
+    
+    def timer_loop(self):
+        if self.connected == False:
+            self.master.after(500, self.timer_loop)
+            return
+        
+        frame = bytes([0xAA, 0x03, 0x01, 0xA8])
+        self.ser.write(frame)
+        ret = self.ser.read(5)
+        print(ret)
+        match ret[3]:
+            case self.IDLE:
+                self.status_label['text'] = "IDLE"
+            case self.SFRA_INIT:
+                self.status_label['text'] = "SFRA INIT"
+            case self.SWEEPING:
+                self.status_label['text'] = "SWEEPING"
+            case self.SWEEP_DONE:
+                self.status_label['text'] = "SWEEP DONE"
+            case self.SFRA_DONE:
+                self.status_label['text'] = "SFRA DONE"
+            case _:
+                self.status_label['text'] = "COMM ERROR"
+        self.master.after(500, self.timer_loop)
+        
 
 if __name__ == "__main__":
     root = tk.Tk()
