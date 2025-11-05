@@ -3,10 +3,13 @@ import serial.tools.list_ports
 import time
 import struct
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 import math
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+import threading
 
 class sfra_host:
     IDLE = 0
@@ -18,25 +21,36 @@ class sfra_host:
     def __init__(self, master):
         self.master = master
         self.master.title("SFRA Host")
-        self.master.geometry("800x600")
+        self.master.geometry("1000x600")
         self.master.resizable(False, False)
+        # self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-        # Serial related settings
+        # Serial related settings 
         self.ser = None
         self.selected_port = None
         self.baudrate = 115200
         self.timeout = 10
         self.connected = False
+        self.mutex = threading.Lock()
+        self.worker_thread = threading.Thread(target=self.bg_task, daemon=True)
         
         # SFRA settings
         self.start_freq = tk.StringVar(value="10")
         self.step_freq = tk.StringVar(value="1.5")
-        self.samp_freq = tk.StringVar(value="10000")
+        self.samp_freq = tk.StringVar(value="100000")
         self.inject_amplitude = tk.StringVar(value="2")
         self.sfra_status = self.IDLE
 
         self.create_layout()
-        self.timer_loop()
+        self.worker_thread.start()
+        # self.timer_loop()
+    
+    def on_closing(self):
+        if self.connected == True:
+            self.ser.close()
+            self.master.destroy()
+            print("Exiting...")
+            exit()
     
     def create_layout(self):
         # Serial
@@ -51,18 +65,26 @@ class sfra_host:
         self.start_freq_label.place(x=10, y=50)
         self.start_freq_box = ttk.Entry(self.master, textvariable=self.start_freq, width=15)
         self.start_freq_box.place(x=10, y=70)
+        self.set_start_freq_btn = ttk.Button(self.master, text="Set", command=self.set_start_freq, width=10)
+        self.set_start_freq_btn.place(x=130, y=68)
         self.step_freq_label = ttk.Label(self.master, text="Step Frequency (Hz):")
         self.step_freq_label.place(x=10, y=95)
         self.step_freq_box = ttk.Entry(self.master, textvariable=self.step_freq, width=15)
         self.step_freq_box.place(x=10, y=115)
+        self.set_step_freq_btn = ttk.Button(self.master, text="Set", command=self.set_step_freq, width=10)
+        self.set_step_freq_btn.place(x=130, y=113)
         self.samp_freq_label = ttk.Label(self.master, text="Sampling Frequency (Hz):")
         self.samp_freq_label.place(x=10, y=140)
         self.samp_freq_box = ttk.Entry(self.master, textvariable=self.samp_freq, width=15)
         self.samp_freq_box.place(x=10, y=160)
+        self.set_samp_freq_btn = ttk.Button(self.master, text="Set", command=self.set_samp_freq, width=10)
+        self.set_samp_freq_btn.place(x=130, y=158)
         self.inject_amp_label = ttk.Label(self.master, text="Inject Amplitude")
         self.inject_amp_label.place(x=10, y=185)
         self.inject_amp_box = ttk.Entry(self.master, textvariable=self.inject_amplitude, width=15)
         self.inject_amp_box.place(x=10, y=205)
+        self.set_inj_amp_btn = ttk.Button(self.master, text="Set", command=self.set_inject_amp, width=10)
+        self.set_inj_amp_btn.place(x=130, y=203)
         self.status_label = ttk.Label(self.master, text="IDLE", font=("Arial", 16, "bold italic"), width=30)
         self.status_label.place(x=10, y=250)
         self.start_btn = ttk.Button(
@@ -77,6 +99,32 @@ class sfra_host:
             width=20, 
             command=self.stop_sfra)
         self.stop_btn.place(x=10, y=325)
+        self.get_bode_btn = ttk.Button(
+            self.master, 
+            text="Get Bode", 
+            width=20, 
+            command=self.get_bode_plot
+        )
+        self.get_bode_btn.place(x=10, y=350)
+        # --- Create a Matplotlib Figure ---
+        self.fig = Figure(dpi=100, constrained_layout=True)
+        ax = self.fig.add_subplot(211)
+        ax.set_title("Magnitude")
+        ax.set_xlabel("Frequency (Hz)")
+        ax.set_ylabel("Mag (db)")
+        ax.set_xscale("log")
+        ax.grid()
+        ay = self.fig.add_subplot(212)
+        ay.set_title("Phase")
+        ay.set_xlabel("Frequency (Hz)")
+        ay.set_ylabel("Phase (deg)")
+        ay.set_xscale("log")
+        ay.grid()
+        
+        # --- Embed figure into Tkinter window ---
+        canvas = FigureCanvasTkAgg(self.fig, master=self.master)
+        canvas.draw()  # draw the initial plot
+        canvas.get_tk_widget().place(x=220, y=50, width=770, height=540)
     
     def list_comports(self, e):
         """Shows the available ports when combobox is clicked"""
@@ -109,30 +157,131 @@ class sfra_host:
             self.connect_btn['text'] = "Connect"
             self.ser.close()
     
+    def set_start_freq(self):
+        if self.connected == False:
+            return
+        frame = bytearray([0xAA, 0x05, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00])
+        start_freq_value = float(self.start_freq.get())
+        start_freq_byte = struct.pack("<f", start_freq_value)
+        frame[-5:-1] = start_freq_byte
+        for i in (range(len(frame) - 1)):
+            frame[-1] = frame[-1] ^ frame[i]
+        print(frame)
+        with self.mutex:
+            self.ser.write(frame)
+            ret = self.ser.read(5)
+        print(ret)
+    
+    def set_step_freq(self):
+        if self.connected == False:
+            return
+        frame = bytearray([0xAA, 0x06, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00])
+        step_freq_value = float(self.step_freq.get())
+        step_freq_byte = struct.pack("<f", step_freq_value)
+        frame[-5:-1] = step_freq_byte
+        for i in (range(len(frame) - 1)):
+            frame[-1] = frame[-1] ^ frame[i]
+        print(frame)
+        with self.mutex:
+            self.ser.write(frame)
+            ret = self.ser.read(5)
+        print(ret)
+
+    def set_samp_freq(self):
+        if self.connected == False:
+            return
+        frame = bytearray([0xAA, 0x07, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00])
+        samp_freq_value = float(self.samp_freq.get())
+        samp_freq_byte = struct.pack("<f", samp_freq_value)
+        frame[-5:-1] = samp_freq_byte
+        for i in (range(len(frame) - 1)):
+            frame[-1] = frame[-1] ^ frame[i]
+        with self.mutex:
+            self.ser.write(frame)
+            ret = self.ser.read(5)
+        print(ret)
+    
+    def set_inject_amp(self):
+        if self.connected == False:
+            return
+        frame = bytearray([0xAA, 0x08, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00])
+        inject_amp_value = float(self.inject_amplitude.get())
+        inject_amp_byte = struct.pack("<f", inject_amp_value)
+        frame[-5:-1] = inject_amp_byte
+        for i in (range(len(frame) - 1)):
+            frame[-1] = frame[-1] ^ frame[i]
+        with self.mutex:
+            self.ser.write(frame)
+            ret = self.ser.read(5)
+        print(ret)
+    
     def start_sfra(self):
         if self.connected == False:
             return
-        frame = bytes([0xAA, 0x02, 0x01, 0xA8])
-        self.ser.write(frame)
-        ret = self.ser.read(5)
+        frame = bytearray([0xAA, 0x02, 0x01, 0xA8])
+        with self.mutex:
+            self.ser.write(frame)
+            ret = self.ser.read(5)
         print(ret)
     
     def stop_sfra(self):
         if self.connected == False:
             return
-        frame = bytes([0xAA, 0x01, 0x01, 0xAA])
-        self.ser.write(frame)
-        ret = self.ser.read(5)
+        frame = bytearray([0xAA, 0x01, 0x01, 0xAA])
+        with self.mutex:
+            self.ser.write(frame)
+            ret = self.ser.read(5)
         print(ret)
     
-    def timer_loop(self):
+    def get_bode_plot(self):
         if self.connected == False:
-            self.master.after(500, self.timer_loop)
             return
+        frame = bytearray([0xAA, 0x04, 0x01, 0xAF])
+        with self.mutex:
+            self.ser.write(frame)
+            ret = self.ser.read(3)
+            payload_len = ret[2]
+            ret = self.ser.read(payload_len)
+        print(ret)
+        payload = ret[:-1]
+        count = len(payload) // 4
+        values = struct.unpack('<' + 'f'*count, payload)
+        group_size = int(count / 3)
+        print(f"Count = {count}, group_size = {group_size}")
+        groups = [values[i:i+group_size] for i in range(0, len(values), group_size)]
+        freq_list, mag_list, pha_list = [list(g) for g in groups]
         
-        frame = bytes([0xAA, 0x03, 0x01, 0xA8])
-        self.ser.write(frame)
-        ret = self.ser.read(5)
+        # update bode plot
+        self.fig = Figure(dpi=100, constrained_layout=True)
+        ax = self.fig.add_subplot(211)
+        ax.plot(freq_list, mag_list)
+        ax.set_title("Magnitude")
+        ax.set_xlabel("Frequency (Hz)")
+        ax.set_ylabel("Mag (db)")
+        ax.set_xscale("log")
+        ax.grid()
+        ay = self.fig.add_subplot(212)
+        ay.plot(freq_list, pha_list)
+        ay.set_title("Phase")
+        ay.set_xlabel("Frequency (Hz)")
+        ay.set_ylabel("Phase (deg)")
+        ay.set_xscale("log")
+        ay.grid()
+        
+        # --- Embed figure into Tkinter window ---
+        canvas = FigureCanvasTkAgg(self.fig, master=self.master)
+        canvas.draw()  # draw the initial plot
+        canvas.get_tk_widget().place(x=220, y=50, width=770, height=540)
+    
+    def bg_task(self):
+        if self.connected == False:
+            self.master.after(2000, self.bg_task)
+            return
+        frame = bytearray([0xAA, 0x03, 0x01, 0xA8])
+        print(frame)
+        with self.mutex:
+            self.ser.write(frame)
+            ret = self.ser.read(5)
         print(ret)
         match ret[3]:
             case self.IDLE:
@@ -147,7 +296,7 @@ class sfra_host:
                 self.status_label['text'] = "SFRA DONE"
             case _:
                 self.status_label['text'] = "COMM ERROR"
-        self.master.after(500, self.timer_loop)
+        self.master.after(2000, self.bg_task)
         
 
 if __name__ == "__main__":

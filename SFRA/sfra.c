@@ -14,15 +14,15 @@ uint32_t tx_len;
 uint8_t rx_len;
 
 const cmd_format_t cmd_table[] = {
-	{ NO_CMD        , 0U, null_handler      },
-	{ SFRA_RESET    , 1U, sfra_reset        },
-	{ START_SWEEP   , 1U, sfra_start_sweep  },
-	{ GET_STATUS    , 1U, sfra_get_status   },
-	{ GET_BODE      , 1U, sfra_get_bode     },
-	{ SET_START_FREQ, 4U, sfra_start_sweep  },
-	{ SET_STEP_FREQ , 4U, sfra_start_sweep  },
-	{ SET_SAMP_FREQ , 4U, sfra_start_sweep  },
-	{ SET_INPUT_AMP , 4U, sfra_set_input_amp},
+	{ NO_CMD        , 0U, null_handler        },
+	{ SFRA_RESET    , 1U, sfra_reset          },
+	{ START_SWEEP   , 1U, sfra_start_sweep    },
+	{ GET_STATUS    , 1U, sfra_get_status     },
+	{ GET_BODE      , 1U, sfra_get_bode       },
+	{ SET_START_FREQ, 5U, sfra_set_start_freq },
+	{ SET_STEP_FREQ , 5U, sfra_set_step_freq  },
+	{ SET_SAMP_FREQ , 5U, sfra_set_samp_freq  },
+	{ SET_INPUT_AMP , 5U, sfra_set_input_amp  },
 };
 
 extern UART_HandleTypeDef huart3;
