@@ -8,7 +8,7 @@
 #ifndef INC_FILTER_H_
 #define INC_FILTER_H_
 
-#define PI (3.141592653589793f)
+//#define PI (3.141592653589793f)
 
 /*
  * Low pass filter :

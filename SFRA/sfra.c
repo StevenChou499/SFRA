@@ -8,7 +8,7 @@
 float sine_table[3600];
 sfra_t sfra;
 
-uint8_t tx_buffer[500];
+uint8_t tx_buffer[1000];
 uint8_t rx_buffer[10];
 uint32_t tx_len;
 uint8_t rx_len;
@@ -27,35 +27,42 @@ const cmd_format_t cmd_table[] = {
 
 extern UART_HandleTypeDef huart3;
 
-int8_t sfra_init(float sampling_rate_Hz,
-	             float freq_start,
-				 float freq_step,
-				 float input_amplitude)
+int8_t sfra_init(float samp_freq,
+				 float start_freq,
+				 float step_freq,
+				 float inj_amp)
 {
 	for (uint32_t i = 0U; i < 3600U; i++) {
 		sine_table[i] = sinf(i * 2.0f * PI / 3600.0f);
 	}
 
-	memset(&sfra, 0U, sizeof(sfra_t));
-	sfra.sampling_freq_Hz = sampling_rate_Hz;
-	sfra.freq_start = freq_start;
-	sfra.freq_step = freq_step;
-	sfra.inject_amplitude = input_amplitude;
-
-	if (sfra.freq_start > sfra.sampling_freq_Hz)
+	if (samp_freq < 0.0f)
+		return -1;
+	if (start_freq < 0.0f)
+		return -1;
+	if (step_freq < 1.0f)
+		return -1;
+	if (inj_amp < 0.0f)
 		return -1;
 
-	float freq_limit = sampling_rate_Hz / 2.0f;
+	memset(&sfra, 0U, sizeof(sfra_t));
+
+	sfra.sampling_freq_Hz = samp_freq;
+	sfra.freq_start = start_freq;
+	sfra.freq_step = step_freq;
+	sfra.inject_amplitude = inj_amp;
+
+	float freq_limit = sfra.sampling_freq_Hz / 2.0f;
 	float freq_exp = 1.0f;
 	uint32_t index = 0U;
 	for (; index < MAX_POINTS; index++) {
-		float samp_freq = freq_start * freq_exp;
+		float samp_freq = sfra.freq_start * freq_exp;
 		if (samp_freq >= freq_limit) {
 			sfra.freq_points = index;
 			return 0;
 		}
 		sfra.freq_table[index] = samp_freq;
-		freq_exp *= freq_step;
+		freq_exp *= sfra.freq_step;
 	}
 	sfra.freq_points = index;
 
@@ -66,7 +73,7 @@ uint32_t sfra_get_sample_count(float sampling_rate_Hz, float target_freq_Hz)
 {
 	float cycle_sample_pts = sampling_rate_Hz / target_freq_Hz;
 	if (cycle_sample_pts <= 20.0f)
-		return (uint32_t) (cycle_sample_pts * 200); // sample for 200 cycles
+		return (uint32_t) (cycle_sample_pts * 50); // sample for 200 cycles
 	else
 		return (uint32_t) (cycle_sample_pts * 20);  // sample for 20 cycles
 }
@@ -88,14 +95,14 @@ void sfra_collect(float *output)
 	if (sfra.output_count != (sfra.input_count - 1U))
 		return;
 
-	sfra.real_part += *output * cosf(sfra.current_angle);
-	sfra.imag_part -= *output * sinf(sfra.current_angle);
+	sfra.result[sfra.freq_index].real += *output * cosf(sfra.current_angle);
+	sfra.result[sfra.freq_index].imag -= *output * sinf(sfra.current_angle);
 	sfra.current_angle +=
-			sfra.freq_table[sfra.current_freq_index] * 2.0f * PI / sfra.sampling_freq_Hz;
+			sfra.freq_table[sfra.freq_index] * 2.0f * PI / sfra.sampling_freq_Hz;
 	if (sfra.current_angle > 2.0f * PI)
 		sfra.current_angle -= 2.0f * PI;
 	sfra.output_count++;
-	if (sfra.output_count == sfra.total_count)
+	if (sfra.output_count == sfra.total_count[sfra.freq_index])
 		sfra.current_state = SWEEP_DONE;
 }
 
@@ -110,36 +117,34 @@ void sfra_update(void)
 
 	switch (sfra.current_state) {
 		case SFRA_INIT:
-			if (sfra_init(sfra.sampling_freq_Hz,
+			if (!sfra_init(sfra.sampling_freq_Hz,
 						   sfra.freq_start,
 						   sfra.freq_step,
 						   sfra.inject_amplitude))
+				sfra.current_state = SWEEP_INIT;
+			else
 				sfra.current_state = IDLE;
-			else {
-				sfra.current_state = SWEEPING;
-				sfra.total_count = sfra_get_sample_count(100e3f, sfra.freq_table[sfra.current_freq_index]);
-				sfra.input_count = 0U;
-				sfra.output_count = 0U;
-				sfra.real_part = 0.0f;
-				sfra.imag_part = 0.0f;
-				sfra.current_angle = 0.0f;
-			}
+			break;
+
+		case SWEEP_INIT:
+			sfra.total_count[sfra.freq_index] =
+					sfra_get_sample_count(sfra.sampling_freq_Hz, sfra.freq_table[sfra.freq_index]);
+			sfra.input_count = 0U;
+			sfra.output_count = 0U;
+			sfra.result[sfra.freq_index].real = 0.0f;
+			sfra.result[sfra.freq_index].imag = 0.0f;
+			sfra.current_angle = 0.0f;
+			sfra.current_state = SWEEPING;
 			break;
 
 		case SWEEP_DONE:
-			sfra.pha_out[sfra.current_freq_index] =
-					atan2f(sfra.imag_part, sfra.real_part) / PI * 180.0f + 90.0f;
-			sfra.mag_out[sfra.current_freq_index] =
-					20.0f * log10f(sqrtf(sfra.real_part * sfra.real_part + sfra.imag_part * sfra.imag_part) / sfra.total_count * 2.0f / sfra.inject_amplitude);
-			if (sfra.current_freq_index < sfra.freq_points - 1) {
-				sfra.current_freq_index++;
-				sfra.total_count = sfra_get_sample_count(100e3f, sfra.freq_table[sfra.current_freq_index]);
-				sfra.input_count = 0U;
-				sfra.output_count = 0U;
-				sfra.real_part = 0.0f;
-				sfra.imag_part = 0.0f;
-				sfra.current_angle = 0.0f;
-				sfra.current_state = SWEEPING;
+			sfra.pha_out[sfra.freq_index] =
+					atan2f(sfra.result[sfra.freq_index].imag, sfra.result[sfra.freq_index].real) / PI * 180.0f + 90.0f;
+			sfra.mag_out[sfra.freq_index] =
+					20.0f * log10f(sqrtf(sfra.result[sfra.freq_index].real * sfra.result[sfra.freq_index].real + sfra.result[sfra.freq_index].imag * sfra.result[sfra.freq_index].imag) / sfra.total_count[sfra.freq_index] * 2.0f / sfra.inject_amplitude);
+			if (sfra.freq_index < sfra.freq_points - 1) {
+				sfra.freq_index++;
+				sfra.current_state = SWEEP_INIT;
 			} else {
 				sfra.current_state = SFRA_DONE;
 			}
@@ -261,26 +266,28 @@ void sfra_ret_ack(sfra_cmd_t command)
 		case SET_STEP_FREQ:
 		case SET_SAMP_FREQ:
 		case SET_INPUT_AMP:
-			tx_buffer[2] = 2U;
-			tx_buffer[3] = ACK;
-			tx_buffer[4] = 0U;
-			for (int i = 0; i < 4; i++) {
-				tx_buffer[4] ^= tx_buffer[i];
+			*(uint16_t *)(tx_buffer + 2) = 2U;
+//			tx_buffer[2] = 2U;
+			tx_buffer[4] = ACK;
+			tx_buffer[5] = 0U;
+			for (int i = 0; i < 5; i++) {
+				tx_buffer[5] ^= tx_buffer[i];
 			}
 			break;
 		case GET_STATUS:
-			tx_buffer[2] = 2U;
-			tx_buffer[3] = sfra.current_state;
-			tx_buffer[4] = 0U;
-			for (int i = 0; i < 4; i++) {
-				tx_buffer[4] ^= tx_buffer[i];
+			*(uint16_t *)(tx_buffer + 2) = 2U;
+			tx_buffer[4] = sfra.current_state;
+			tx_buffer[5] = 0U;
+			for (int i = 0; i < 5; i++) {
+				tx_buffer[5] ^= tx_buffer[i];
 			}
 			break;
 		case GET_BODE:
 			points = sfra.freq_points;
-			tx_buffer[2] = 3U * 4U * points + 1;
+			*(uint16_t *)(tx_buffer + 2) = 3U * 4U * points + 1;
+//			tx_buffer[2] = 3U * 4U * points + 1;
 
-			index = 3U;
+			index = 4U;
 			memcpy(tx_buffer + index, (uint8_t *)sfra.freq_table, 4U * points);
 			index += 4U * points;
 			memcpy(tx_buffer + index, (uint8_t *)sfra.mag_out   , 4U * points);
@@ -296,7 +303,7 @@ void sfra_ret_ack(sfra_cmd_t command)
 		default:
 
 	}
-	tx_len = tx_buffer[2] + 3U;
+	tx_len = *(uint16_t *)(tx_buffer + 2) + 4U;
 	HAL_UART_Transmit_DMA(&huart3, tx_buffer, tx_len);
 	return;
 }
@@ -311,8 +318,12 @@ void sfra_ret_nack(sfra_cmd_t command)
 		.checksum = 0U,
 	};
 
-	ret.checksum = (ret.header ^ ret.cmd) ^
-	               (ret.len    ^ ret.nack);
+	for (int i = 0; i < 5; i++) {
+		ret.checksum ^= *((uint8_t *)(&ret) + i);
+	}
+
+//	ret.checksum = (ret.header ^ ret.cmd) ^
+//	               (ret.len    ^ ret.nack);
 
 	HAL_UART_Transmit(&huart3, (uint8_t *)&ret, sizeof(ret), HAL_MAX_DELAY);
 	return;

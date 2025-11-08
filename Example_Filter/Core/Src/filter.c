@@ -6,6 +6,8 @@
  */
 #include <filter.h>
 
+static const float PI = 3.1415926535f;
+
 static lpf_t ac_lpf;
 static pi_t  ac_pi;
 static pd_t  ac_pd;

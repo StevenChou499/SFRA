@@ -14,9 +14,10 @@ import threading
 class sfra_host:
     IDLE = 0
     SFRA_INIT = 1
-    SWEEPING = 2
-    SWEEP_DONE = 3
-    SFRA_DONE = 4
+    SWEEP_INIT = 2
+    SWEEPING = 3
+    SWEEP_DONE = 4
+    SFRA_DONE = 5
 
     def __init__(self, master):
         self.master = master
@@ -43,8 +44,7 @@ class sfra_host:
 
         self.create_layout()
         self.worker_thread.start()
-        # self.timer_loop()
-    
+
     def on_closing(self):
         if self.connected == True:
             self.ser.close()
@@ -169,7 +169,7 @@ class sfra_host:
         print(frame)
         with self.mutex:
             self.ser.write(frame)
-            ret = self.ser.read(5)
+            ret = self.ser.read(6)
         print(ret)
     
     def set_step_freq(self):
@@ -184,7 +184,7 @@ class sfra_host:
         print(frame)
         with self.mutex:
             self.ser.write(frame)
-            ret = self.ser.read(5)
+            ret = self.ser.read(6)
         print(ret)
 
     def set_samp_freq(self):
@@ -198,7 +198,7 @@ class sfra_host:
             frame[-1] = frame[-1] ^ frame[i]
         with self.mutex:
             self.ser.write(frame)
-            ret = self.ser.read(5)
+            ret = self.ser.read(6)
         print(ret)
     
     def set_inject_amp(self):
@@ -212,7 +212,7 @@ class sfra_host:
             frame[-1] = frame[-1] ^ frame[i]
         with self.mutex:
             self.ser.write(frame)
-            ret = self.ser.read(5)
+            ret = self.ser.read(6)
         print(ret)
     
     def start_sfra(self):
@@ -221,7 +221,7 @@ class sfra_host:
         frame = bytearray([0xAA, 0x02, 0x01, 0xA8])
         with self.mutex:
             self.ser.write(frame)
-            ret = self.ser.read(5)
+            ret = self.ser.read(6)
         print(ret)
     
     def stop_sfra(self):
@@ -230,7 +230,7 @@ class sfra_host:
         frame = bytearray([0xAA, 0x01, 0x01, 0xAA])
         with self.mutex:
             self.ser.write(frame)
-            ret = self.ser.read(5)
+            ret = self.ser.read(6)
         print(ret)
     
     def get_bode_plot(self):
@@ -239,17 +239,20 @@ class sfra_host:
         frame = bytearray([0xAA, 0x04, 0x01, 0xAF])
         with self.mutex:
             self.ser.write(frame)
-            ret = self.ser.read(3)
-            payload_len = ret[2]
+            ret = self.ser.read(4)
+            payload_len = struct.unpack('<H', ret[2:4])[0]
+            # payload_len = ret[2]
             ret = self.ser.read(payload_len)
         print(ret)
         payload = ret[:-1]
         count = len(payload) // 4
+        # print(payload[1008:1012])
         values = struct.unpack('<' + 'f'*count, payload)
         group_size = int(count / 3)
         print(f"Count = {count}, group_size = {group_size}")
         groups = [values[i:i+group_size] for i in range(0, len(values), group_size)]
         freq_list, mag_list, pha_list = [list(g) for g in groups]
+        # print(pha_list)
         
         # update bode plot
         self.fig = Figure(dpi=100, constrained_layout=True)
@@ -281,13 +284,15 @@ class sfra_host:
         print(frame)
         with self.mutex:
             self.ser.write(frame)
-            ret = self.ser.read(5)
+            ret = self.ser.read(6)
         print(ret)
-        match ret[3]:
+        match ret[4]:
             case self.IDLE:
                 self.status_label['text'] = "IDLE"
             case self.SFRA_INIT:
                 self.status_label['text'] = "SFRA INIT"
+            case self.SWEEP_INIT:
+                self.status_label['text'] = "SWEEP INIT"
             case self.SWEEPING:
                 self.status_label['text'] = "SWEEPING"
             case self.SWEEP_DONE:

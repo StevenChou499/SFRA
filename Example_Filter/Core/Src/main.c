@@ -106,7 +106,7 @@ int main(void)
   lpf_init(ac_lpf_p, 200.0f, 100e3f);
 //  pi_init(ac_pi_p, 2.0f, 500.0f, 100e3f);
 //  pd_init(ac_pd_p, 2.0f, 0.002f, 100e3f);
-  sfra_init(100e3f, 5.0f, 1.54119f, 10.0f);
+//  sfra_init(100e3f, 5.0f, 1.54119f, 10.0f);
 
   HAL_TIM_Base_Start_IT(&htim1);
   HAL_Delay(1000);
