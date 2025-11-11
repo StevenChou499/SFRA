@@ -51,7 +51,7 @@ namespace SFRA_Host
         SerialPort? mySerialPort = null;
         readonly Thread? bg_thread = null;
         bool connected = false;
-        byte[] rx_buffer = new byte[10];
+        byte[] rx_buffer = new byte[1000];
         byte[] tx_buffer = new byte[10];
         float start_freq_value = 0.0f;
         float step_freq_value = 0.0f;
@@ -281,7 +281,7 @@ namespace SFRA_Host
             mySerialPort.Write(tx_buffer, 0, 4);
             Safe_Read(ref rx_buffer, 0, 6);
             string hexString = BitConverter.ToString(rx_buffer);
-            Console.WriteLine(hexString);
+            Console.WriteLine(hexString, 0, 6);
             return;
         }
 
@@ -290,7 +290,7 @@ namespace SFRA_Host
             tx_buffer = new byte[] { 0xAA, 0x03, 0x01, 0xA8 };
             mySerialPort.Write(tx_buffer, 0, 4);
             Safe_Read(ref rx_buffer, 0, 6);
-            string hexString = BitConverter.ToString(rx_buffer);
+            string hexString = BitConverter.ToString(rx_buffer, 0, 6);
             Console.WriteLine(hexString);
             SFRA_STATUS sfra_status = (SFRA_STATUS)rx_buffer[4];
             Application.Current.Dispatcher.BeginInvoke(() =>
@@ -332,6 +332,13 @@ namespace SFRA_Host
 
         void sfra_get_bode(float arg)
         {
+            byte[] float_byte = BitConverter.GetBytes(arg);
+            tx_buffer = new byte[] { 0xAA, 0x04, 0x01, 0xAF };
+            mySerialPort.Write(tx_buffer, 0, 4);
+            Safe_Read(ref rx_buffer, 0, 4);
+            short payload_len = BitConverter.ToInt16(rx_buffer, 2);
+            Console.WriteLine($"The payload length is {payload_len} bytes");
+            Safe_Read(ref rx_buffer, 4, payload_len);
             return;
         }
 
