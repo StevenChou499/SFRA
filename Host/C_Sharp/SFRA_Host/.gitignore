@@ -1,0 +1,10 @@
+# Project specific files
+.vs/
+*.sln
+
+# User specific files
+SFRA_Host/SFRA_Host.*
+
+# Executables
+SFRA_Host/bin/*
+SFRA_Host/obj/*

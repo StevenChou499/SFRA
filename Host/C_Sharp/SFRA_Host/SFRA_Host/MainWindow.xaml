@@ -1,0 +1,124 @@
+﻿<Window x:Class="SFRA_Host.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SFRA_Host"
+        mc:Ignorable="d"
+        Title="SFRA" Height="600" Width="1000"
+        ResizeMode="NoResize" 
+        Closing="Window_Closing">
+    <Canvas>
+        <ComboBox 
+            Name="ComportList" 
+            Width="100" Height="20" 
+            Canvas.Left="15" Canvas.Top="10" 
+            DropDownOpened="ShowComportList"/>
+        <Button 
+            Name="Connect_Btn" 
+            Width="100" Height="20" 
+            Canvas.Left="130" Canvas.Top="10" 
+            Content="Connect"
+            Click="Connect_Btn_Clicked"/>
+        <Label 
+            Name="StartFreqLabel" 
+            Width="150" Height="25" 
+            Canvas.Left="10" Canvas.Top="40" 
+            HorizontalContentAlignment="Left" 
+            Content="Starting Frequency (Hz)"/>
+        <TextBox 
+            Name="StartFreqBox" 
+            Width="100" Height="20" 
+            Canvas.Left="15" Canvas.Top="65" 
+            TextWrapping="Wrap" 
+            Text=""/>
+        <Button 
+            Name="StartFreqBtn" 
+            Width="100" Height="20" 
+            Canvas.Left="130" Canvas.Top="65" 
+            Content="Set" 
+            Click="Set_Start_Frequency"/>
+        <Label 
+            Name="StepFreqLabel" 
+            Width="150" Height="25" 
+            Canvas.Left="10" Canvas.Top="95" 
+            HorizontalContentAlignment="Left" 
+            Content="Step Frequency (Hz)"/>
+        <TextBox 
+            Name="StepFreqBox" 
+            Width="100" Height="20" 
+            Canvas.Left="15" Canvas.Top="120" 
+            TextWrapping="Wrap" Text=""/>
+        <Button 
+            Name="StepFreqBtn" 
+            Width="100" Height="20" 
+            Canvas.Left="130" Canvas.Top="120" 
+            Content="Set" 
+            Click="Set_Step_Frequency"/>
+        <Label 
+            Name="SampFreqLabel" 
+            Width="150" Height="25" 
+            Canvas.Left="10" Canvas.Top="150" 
+            HorizontalContentAlignment="Left" 
+            Content="Samp Frequency (Hz)"/>
+        <TextBox 
+            Name="SampFreqBox" 
+            Width="100" Height="20" 
+            Canvas.Left="15" Canvas.Top="175" 
+            TextWrapping="Wrap" 
+            Text=""/>
+        <Button 
+            Name="SampFreqBtn" 
+            Width="100" Height="20" 
+            Canvas.Left="130" Canvas.Top="175" 
+            Content="Set" 
+            Click="Set_Samp_Frequency"/>
+        <Label 
+            Name="InjAmpLabel" 
+            Width="150" Height="25" 
+            Canvas.Left="10" Canvas.Top="205" 
+            HorizontalContentAlignment="Left" 
+            Content="Inject Amplitude"/>
+        <TextBox 
+            Name="InjAmpBox" 
+            Width="100" Height="20" 
+            Canvas.Left="15" Canvas.Top="230" 
+            TextWrapping="Wrap" 
+            Text=""/>
+        <Button 
+            Name="InjAmpBtn" 
+            Width="100" Height="20" 
+            Canvas.Left="130" Canvas.Top="230" 
+            Content="Set" 
+            Click="Set_Inject_Amplitude"/>
+        <Label 
+            Name="SFRAStatusLabel" 
+            Width="200" Height="50" 
+            Canvas.Left="15" Canvas.Top="260" 
+            HorizontalContentAlignment="Center" VerticalContentAlignment="Center" 
+            Foreground="Black"
+            FontFamily="Verdana" FontSize="25" FontStyle="Italic"
+            Content="IDLE"/>
+        <Button 
+            Name="StartSFRA" 
+            Width="150" Height="40" 
+            Canvas.Left="10" Canvas.Top="320" 
+            FontFamily="Arial" FontSize="20" FontStyle="Italic" 
+            Content="Start SFRA" 
+            Click="Start_SFRA"/>
+        <Button 
+            Name="ResetSFRA" 
+            Width="150" Height="40" 
+            Canvas.Left="10" Canvas.Top="370" 
+            FontFamily="Arial" FontSize="20" FontStyle="Italic" 
+            Content="Reset/Stop" 
+            Click="Reset_SFRA"/>
+        <Button 
+            Name="GetBodeBtn" 
+            Width="150" Height="40" 
+            Canvas.Left="10" Canvas.Top="420" 
+            FontFamily="Arial" FontSize="20" FontStyle="Italic"
+            Content="Get Bode" 
+            Click="Get_Bode"/>
+    </Canvas>
+</Window>
