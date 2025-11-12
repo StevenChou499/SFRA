@@ -1,4 +1,9 @@
-﻿using System.Text;
+﻿using ScottPlot;
+using ScottPlot.Plottables;
+using System.IO;
+using System.IO.Ports;
+using System.Text;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -8,9 +13,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using System.IO.Ports;
-using System.IO;
-using System.Threading;
 
 namespace SFRA_Host
 {
@@ -56,9 +58,10 @@ namespace SFRA_Host
         float start_freq_value = 0.0f;
         float step_freq_value = 0.0f;
         float samp_freq_vaule = 0.0f;
-        float input_amp_value = 0.0f;
+        float input_amp_value = 0.0f; 
         Mutex mutex_lock = new Mutex();
         Queue<CmdItem> Cmd_Queue = new Queue<CmdItem>();
+        ScottPlot.Plot plt = new ScottPlot.Plot();
 
         public MainWindow()
         {
@@ -76,6 +79,7 @@ namespace SFRA_Host
                 [SFRA_Cmd.SET_SAMP_FREQ] = sfra_set_samp_freq,
                 [SFRA_Cmd.SET_INPUT_AMP] = sfra_set_input_amp,
             };
+            
             bg_thread = new Thread(Background_Comm_Thread);
             bg_thread.Start();
         }
@@ -339,6 +343,17 @@ namespace SFRA_Host
             short payload_len = BitConverter.ToInt16(rx_buffer, 2);
             Console.WriteLine($"The payload length is {payload_len} bytes");
             Safe_Read(ref rx_buffer, 4, payload_len);
+            int bode_length = payload_len - 1;
+            int points = bode_length / 12;
+            float[] freq_points = new float[points];
+            float[] mag_points = new float[points];
+            float[] pha_points = new float[points];
+            for (int i = 0; i < points; i++)
+            {
+                freq_points[i] = BitConverter.ToSingle(rx_buffer, 4 + 4 * i);
+                mag_points[i] = BitConverter.ToSingle(rx_buffer, 4 + 4 * points + 4 * i);
+                pha_points[i] = BitConverter.ToSingle(rx_buffer, 4 + 8 * points + 4 * i);
+            }
             return;
         }
 
