@@ -53,7 +53,7 @@ namespace SFRA_Host
         SerialPort? mySerialPort = null;
         readonly Thread? bg_thread = null;
         bool connected = false;
-        byte[] rx_buffer = new byte[1000];
+        byte[] rx_buffer = new byte[1500];
         byte[] tx_buffer = new byte[10];
         float start_freq_value = 0.0f;
         float step_freq_value = 0.0f;
@@ -115,6 +115,10 @@ namespace SFRA_Host
                 {
                     mySerialPort.Open();
                     mySerialPort.ReadTimeout = 2000;
+                    mySerialPort.DataBits = 8;
+                    mySerialPort.Parity = Parity.None;
+                    mySerialPort.StopBits = StopBits.One;
+                    mySerialPort.Handshake = Handshake.None;
                     connected = true;
                     Connect_Btn.Content = "Disconnect";
                     ComportList.IsEnabled = false;
