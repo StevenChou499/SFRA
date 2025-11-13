@@ -61,7 +61,8 @@ namespace SFRA_Host
         float input_amp_value = 0.0f; 
         Mutex mutex_lock = new Mutex();
         Queue<CmdItem> Cmd_Queue = new Queue<CmdItem>();
-        ScottPlot.Plot plt = new ScottPlot.Plot();
+        Crosshair mag_crosshair;
+        Crosshair pha_crosshair;
 
         public MainWindow()
         {
@@ -79,7 +80,13 @@ namespace SFRA_Host
                 [SFRA_Cmd.SET_SAMP_FREQ] = sfra_set_samp_freq,
                 [SFRA_Cmd.SET_INPUT_AMP] = sfra_set_input_amp,
             };
-            
+            Mag_Plot.MouseMove += Mag_MouseMove;
+            Pha_Plot.MouseMove += Pha_MouseMove;
+            mag_crosshair = Mag_Plot.Plot.Add.Crosshair(0, 0);
+            pha_crosshair = Pha_Plot.Plot.Add.Crosshair(0, 0);
+            mag_crosshair.IsVisible = true;
+            pha_crosshair.IsVisible = true;
+
             bg_thread = new Thread(Background_Comm_Thread);
             bg_thread.Start();
         }
@@ -284,8 +291,6 @@ namespace SFRA_Host
             tx_buffer = new byte[] { 0xAA, 0x02, 0x01, 0xA8 };
             mySerialPort.Write(tx_buffer, 0, 4);
             Safe_Read(ref rx_buffer, 0, 6);
-            string hexString = BitConverter.ToString(rx_buffer);
-            Console.WriteLine(hexString, 0, 6);
             return;
         }
 
@@ -354,6 +359,22 @@ namespace SFRA_Host
                 mag_points[i] = BitConverter.ToSingle(rx_buffer, 4 + 4 * points + 4 * i);
                 pha_points[i] = BitConverter.ToSingle(rx_buffer, 4 + 8 * points + 4 * i);
             }
+            float[] freq_log = freq_points.Select(f => MathF.Log10(f)).ToArray();
+
+            Mag_Plot.Plot.Add.Scatter(freq_log, mag_points);
+            Mag_Plot.Plot.XLabel("X Axis 1");
+            Mag_Plot.Plot.YLabel("Y Axis 1 (x^2)");
+            Mag_Plot.Plot.Title("Plot 1: Quadratic");
+            Mag_Plot.Plot.Axes.AutoScale();
+
+            Pha_Plot.Plot.Add.Scatter(freq_log, pha_points);
+            Pha_Plot.Plot.XLabel("X Axis 2");
+            Pha_Plot.Plot.YLabel("Y Axis 2 (1/x)");
+            Pha_Plot.Plot.Title("Plot 2: Reciprocal");
+            Pha_Plot.Plot.Axes.AutoScale();
+
+            Mag_Plot.Refresh();
+            Pha_Plot.Refresh();
             return;
         }
 
@@ -407,6 +428,22 @@ namespace SFRA_Host
             mySerialPort.Write(tx_buffer, 0, 8);
             Safe_Read(ref rx_buffer, 0, 6);
             return;
+        }
+
+        void Mag_MouseMove(object sender, MouseEventArgs e)
+        {
+            Pixel p = Mag_Plot.GetPlotPixelPosition(e);
+            Coordinates cc = Mag_Plot.Plot.GetCoordinates(p.X, p.Y);
+            Cursor_Label.Content = "(" + cc.X.ToString("F2") + ", " + cc.Y.ToString("F2") + ")";
+            Mag_Plot.Refresh();
+        }
+
+        void Pha_MouseMove(object sender, MouseEventArgs e)
+        {
+            Pixel p = Pha_Plot.GetPlotPixelPosition(e);
+            Coordinates cc = Pha_Plot.Plot.GetCoordinates(p.X, p.Y);
+            Cursor_Label.Content = "(" + cc.X.ToString("F2") + ", " + cc.Y.ToString("F2") + ")";
+            Pha_Plot.Refresh();
         }
     }
 }

@@ -122,9 +122,21 @@
             FontFamily="Arial" FontSize="20" FontStyle="Italic"
             Content="Get Bode" 
             Click="Get_Bode"/>
-        <ScottPlot:WpfPlot 
-            x:Name="WpfPlot1" 
-            Width="700" Height="500" 
-            Canvas.Left="270" Canvas.Top="50"/>
+        <ScottPlot:WpfPlot
+            x:Name="Mag_Plot"
+            Width="700" Height="270"
+            Canvas.Left="270" Canvas.Top="15"/>
+        <ScottPlot:WpfPlot
+            x:Name="Pha_Plot"
+            Width="700" Height="270"
+            Canvas.Left="270" Canvas.Top="290"/>
+        <Label 
+            Name="Cursor_Label" 
+            Width="150" Height="30" 
+            Canvas.Left="15" Canvas.Top="530" 
+            HorizontalContentAlignment="Center" VerticalContentAlignment="Center" 
+            Foreground="Black"
+            FontFamily="Calibri" FontSize="14" 
+            Content="(0, 0)"/>
     </Canvas>
 </Window>
