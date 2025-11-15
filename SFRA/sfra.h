@@ -4,11 +4,17 @@
 #define IRQ_SAMP_FREQ   (100e3f)
 #define MAX_POINTS      (100U)
 
-typedef enum tx_rx_state {
+typedef enum rx_state {
 	WAIT_HEAD,
 	WAIT_PAYLOAD,
 	REPLY_CMD,
-} tx_rx_state_t;
+} rx_state_t;
+
+typedef enum tx_state {
+	NO_PACKET,
+	SINGLE_PACKET,
+	MULTI_PACKET,
+} tx_state_t;
 
 typedef enum sfra_cmd {
 	NO_CMD,
@@ -67,13 +73,14 @@ typedef struct sfra_st {
 	uint32_t output_count;            // Number of points collected in a single sweep
 	uint32_t total_count[MAX_POINTS]; // Number of points total needed in a single sweep
 	float sampling_freq_Hz;           // SFRA's sampling frequency
-	tx_rx_state_t rx_state;           // SFRA's RX command state
+	tx_state_t tx_state;              // SFRA's TX command state
+	rx_state_t rx_state;              // SFRA's RX command state
 	sfra_cmd_t received_cmd;          // SFRA's received command
 	sfra_state_t current_state;       // SFRA's current state
 } sfra_t;
 
 extern sfra_t sfra;
-extern uint8_t tx_buffer[1000];
+extern uint8_t tx_buffer[1500];
 extern uint8_t rx_buffer[10];
 extern uint32_t tx_len;
 extern uint8_t rx_len;

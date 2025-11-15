@@ -1,5 +1,6 @@
 ﻿using ScottPlot;
 using ScottPlot.Plottables;
+using ScottPlot.WPF;
 using System.IO;
 using System.IO.Ports;
 using System.Text;
@@ -254,8 +255,8 @@ namespace SFRA_Host
                         }
                         mutex_lock.ReleaseMutex();
                     }
+                    Cmd_Queue.Enqueue(new CmdItem { cmd = SFRA_Cmd.GET_STATUS, arg = 0.0f });
                 }
-                Cmd_Queue.Enqueue(new CmdItem { cmd = SFRA_Cmd.GET_STATUS, arg = 0.0f });
                 await Task.Delay(1000);
             }
         }
@@ -365,12 +366,14 @@ namespace SFRA_Host
             }
             float[] freq_log = freq_points.Select(f => MathF.Log10(f)).ToArray();
 
+            Mag_Plot.Plot.Clear();
             Mag_Plot.Plot.Add.Scatter(freq_log, mag_points);
             Mag_Plot.Plot.XLabel("X Axis 1");
             Mag_Plot.Plot.YLabel("Y Axis 1 (x^2)");
             Mag_Plot.Plot.Title("Plot 1: Quadratic");
             Mag_Plot.Plot.Axes.AutoScale();
 
+            Pha_Plot.Plot.Clear();
             Pha_Plot.Plot.Add.Scatter(freq_log, pha_points);
             Pha_Plot.Plot.XLabel("X Axis 2");
             Pha_Plot.Plot.YLabel("Y Axis 2 (1/x)");
@@ -421,7 +424,7 @@ namespace SFRA_Host
             return;
         }
 
-         void sfra_set_input_amp(float arg)
+        void sfra_set_input_amp(float arg)
         {
             byte[] float_byte = BitConverter.GetBytes(arg);
             tx_buffer = new byte[] { 0xAA, 0x08, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00 };

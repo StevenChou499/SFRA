@@ -8,10 +8,11 @@
 float sine_table[3600];
 sfra_t sfra;
 
-uint8_t tx_buffer[1000];
+uint8_t tx_buffer[1500];
 uint8_t rx_buffer[10];
 uint32_t tx_len;
 uint8_t rx_len;
+uint32_t tx_index;
 
 const cmd_format_t cmd_table[] = {
 	{ NO_CMD        , 0U, null_handler        },
@@ -73,7 +74,7 @@ uint32_t sfra_get_sample_count(float sampling_rate_Hz, float target_freq_Hz)
 {
 	float cycle_sample_pts = sampling_rate_Hz / target_freq_Hz;
 	if (cycle_sample_pts <= 20.0f)
-		return (uint32_t) (cycle_sample_pts * 50); // sample for 200 cycles
+		return (uint32_t) (cycle_sample_pts * 50); // sample for 5 cycles
 	else
 		return (uint32_t) (cycle_sample_pts * 20);  // sample for 20 cycles
 }
@@ -267,7 +268,6 @@ void sfra_ret_ack(sfra_cmd_t command)
 		case SET_SAMP_FREQ:
 		case SET_INPUT_AMP:
 			*(uint16_t *)(tx_buffer + 2) = 2U;
-//			tx_buffer[2] = 2U;
 			tx_buffer[4] = ACK;
 			tx_buffer[5] = 0U;
 			for (int i = 0; i < 5; i++) {
@@ -285,7 +285,6 @@ void sfra_ret_ack(sfra_cmd_t command)
 		case GET_BODE:
 			points = sfra.freq_points;
 			*(uint16_t *)(tx_buffer + 2) = 3U * 4U * points + 1;
-//			tx_buffer[2] = 3U * 4U * points + 1;
 
 			index = 4U;
 			memcpy(tx_buffer + index, (uint8_t *)sfra.freq_table, 4U * points);
@@ -304,7 +303,16 @@ void sfra_ret_ack(sfra_cmd_t command)
 
 	}
 	tx_len = *(uint16_t *)(tx_buffer + 2) + 4U;
-	HAL_UART_Transmit_DMA(&huart3, tx_buffer, tx_len);
+	if (tx_len > 512U) {
+		sfra.tx_state = MULTI_PACKET;
+		HAL_UART_Transmit_DMA(&huart3, tx_buffer, 512U);
+		tx_len -= 512U;
+		tx_index += 512U;
+	} else {
+		sfra.tx_state = SINGLE_PACKET;
+		HAL_UART_Transmit_DMA(&huart3, tx_buffer, tx_len);
+		tx_index = 0U;
+	}
 	return;
 }
 
@@ -322,9 +330,6 @@ void sfra_ret_nack(sfra_cmd_t command)
 		ret.checksum ^= *((uint8_t *)(&ret) + i);
 	}
 
-//	ret.checksum = (ret.header ^ ret.cmd) ^
-//	               (ret.len    ^ ret.nack);
-
 	HAL_UART_Transmit(&huart3, (uint8_t *)&ret, sizeof(ret), HAL_MAX_DELAY);
 	return;
 }
@@ -332,6 +337,31 @@ void sfra_ret_nack(sfra_cmd_t command)
 /*
  * MCU specific serial functions
  */
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+	switch (sfra.tx_state)
+	{
+		case MULTI_PACKET:
+			if (tx_len > 512U) {
+				HAL_UART_Transmit_DMA(&huart3, tx_buffer + tx_index, 512U);
+				tx_len -= 512U;
+				tx_index += 512U;
+			} else {
+				HAL_UART_Transmit_DMA(&huart3, tx_buffer + tx_index, tx_len);
+				tx_len =0U;
+				tx_index = 0U;
+				sfra.tx_state = NO_PACKET;
+			}
+			break;
+
+		case NO_PACKET:
+		case SINGLE_PACKET:
+		default:
+			sfra.tx_state = NO_PACKET;
+			break;
+	}
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if (WAIT_HEAD == sfra.rx_state) {
@@ -341,7 +371,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			return;
 
 		uint16_t payload_len = cmd_table[rx_buffer[2]].payload_len;
-		HAL_UART_DMAStop(&huart3);
 		HAL_UART_Receive_DMA(&huart3, rx_buffer + 3, payload_len);
 		sfra.rx_state = WAIT_PAYLOAD;
 	} else { // WAIT_PAYLOAD == sfra.rx_state
