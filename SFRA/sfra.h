@@ -3,6 +3,7 @@
 
 #define IRQ_SAMP_FREQ   (100e3f)
 #define MAX_POINTS      (100U)
+#define DELAY_CYCLES    (100U)
 
 typedef enum rx_state {
 	WAIT_HEAD,
@@ -53,6 +54,7 @@ typedef enum sfra_state {
 	SWEEP_INIT,
 	SWEEPING,
 	SWEEP_DONE,
+	DELAY,
 	SFRA_DONE,
 } sfra_state_t;
 
@@ -77,6 +79,7 @@ typedef struct sfra_st {
 	rx_state_t rx_state;              // SFRA's RX command state
 	sfra_cmd_t received_cmd;          // SFRA's received command
 	sfra_state_t current_state;       // SFRA's current state
+	uint32_t delayed_cycles;          // delayed cycles between every frequency sweeped
 } sfra_t;
 
 extern sfra_t sfra;

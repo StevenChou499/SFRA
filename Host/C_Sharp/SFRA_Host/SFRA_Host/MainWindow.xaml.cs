@@ -42,6 +42,7 @@ namespace SFRA_Host
             SWEEP_INIT, 
             SWEEPING, 
             SWEEP_DONE, 
+            DELAY, 
             SFRA_DONE, 
         }
 
@@ -329,6 +330,10 @@ namespace SFRA_Host
                         break;
                     case SFRA_STATUS.SWEEP_DONE:
                         SFRAStatusLabel.Content = "SWEEP DONE";
+                        SFRAStatusLabel.Foreground = Brushes.Black;
+                        break;
+                    case SFRA_STATUS.DELAY:
+                        SFRAStatusLabel.Content = "DELAY";
                         SFRAStatusLabel.Foreground = Brushes.Black;
                         break;
                     case SFRA_STATUS.SFRA_DONE:

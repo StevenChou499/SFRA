@@ -91,6 +91,10 @@ float sfra_inject(float input)
 
 void sfra_collect(float *output)
 {
+	if (sfra.current_state == DELAY) {
+		sfra.delayed_cycles++;
+		return;
+	}
 	if (sfra.current_state != SWEEPING)
 		return;
 	if (sfra.output_count != (sfra.input_count - 1U))
@@ -145,9 +149,16 @@ void sfra_update(void)
 					20.0f * log10f(sqrtf(sfra.result[sfra.freq_index].real * sfra.result[sfra.freq_index].real + sfra.result[sfra.freq_index].imag * sfra.result[sfra.freq_index].imag) / sfra.total_count[sfra.freq_index] * 2.0f / sfra.inject_amplitude);
 			if (sfra.freq_index < sfra.freq_points - 1) {
 				sfra.freq_index++;
-				sfra.current_state = SWEEP_INIT;
+				sfra.current_state = DELAY;
 			} else {
 				sfra.current_state = SFRA_DONE;
+			}
+			break;
+
+		case DELAY:
+			if (sfra.delayed_cycles >= DELAY_CYCLES) {
+				sfra.current_state = SWEEP_INIT;
+				sfra.delayed_cycles = 0U;
 			}
 			break;
 
