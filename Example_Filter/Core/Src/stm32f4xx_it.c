@@ -240,9 +240,10 @@ void TIM1_UP_TIM10_IRQHandler(void)
   float input = 0.0f;
   static float output = 0.0f;
   input = sfra_inject(input);
-  lpf_update(ac_lpf_p, input, &output);
+//  lpf_update(ac_lpf_p, input, &output);
 //  pi_update(ac_pi_p, input, &output);
 //  pd_update(ac_pd_p, input, &output);
+  sec_order_update(ac_2nd_p, input, &output);
   sfra_collect(&output);
   /* USER CODE END TIM1_UP_TIM10_IRQn 0 */
   HAL_TIM_IRQHandler(&htim1);

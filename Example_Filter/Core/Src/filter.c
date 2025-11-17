@@ -11,10 +11,12 @@ static const float PI = 3.1415926535f;
 static lpf_t ac_lpf;
 static pi_t  ac_pi;
 static pd_t  ac_pd;
+static sec_order_t ac_2nd;
 
 lpf_t *ac_lpf_p = &ac_lpf;
 pi_t  *ac_pi_p = &ac_pi;
 pd_t  *ac_pd_p = &ac_pd;
+sec_order_t *ac_2nd_p = &ac_2nd;
 
 void lpf_init(lpf_t *lpf, float cut_off_freq_Hz, float samp_rate)
 {
@@ -93,3 +95,37 @@ void pd_update(pd_t *pd, float new_input, float *output)
 	pd->last_output = pd->output;
 }
 
+void sec_order_init(sec_order_t *sec, float Wn, float Zeta, float samp_rate)
+{
+	sec->samp_rate = samp_rate;
+	sec->time_period = 1.0f / sec->samp_rate;
+	sec->Wn = Wn;
+	sec->Zeta = Zeta;
+	float param = sec->Wn * sec->time_period;
+	sec->b0 = (param * param) / (param * param + 4.0f * param * sec->Zeta + 4.0f);
+	sec->b1 = (2.0f * param * param) / (param * param + 4.0f * param * sec->Zeta + 4.0f);
+	sec->b2 = (param * param) / (param * param + 4.0f * param * sec->Zeta + 4.0f);
+	sec->a1 = (2.0f * (param * param - 4.0f)) / (param * param + 4.0f * param * sec->Zeta + 4.0f);
+	sec->a2 = (param * param - 4.0f * param * sec->Zeta + 4.0f) / (param * param + 4.0f * param * sec->Zeta + 4.0f);
+
+	sec->last_input = 0.0f;
+	sec->sec_last_input = 0.0f;
+	sec->last_output = 0.0f;
+	sec->sec_last_output = 0.0f;
+}
+
+void sec_order_update(sec_order_t *sec, float new_input, float *output)
+{
+	sec->input = new_input;
+	sec->output = sec->b0 * sec->input +
+				  sec->b1 * sec->last_input +
+				  sec->b2 * sec->sec_last_input -
+				  sec->a1 * sec->last_output -
+				  sec->a2 * sec->sec_last_output;
+	*output = sec->output;
+
+	sec->sec_last_input = sec->last_input;
+	sec->last_input = sec->input;
+	sec->sec_last_output = sec->last_output;
+	sec->last_output = sec->output;
+}

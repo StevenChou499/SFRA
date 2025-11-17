@@ -73,8 +73,10 @@ int8_t sfra_init(float samp_freq,
 uint32_t sfra_get_sample_count(float sampling_rate_Hz, float target_freq_Hz)
 {
 	float cycle_sample_pts = sampling_rate_Hz / target_freq_Hz;
+	if (cycle_sample_pts <= 5.0f)
+		return (uint32_t) (cycle_sample_pts * 200); // sample for 200 cycles
 	if (cycle_sample_pts <= 20.0f)
-		return (uint32_t) (cycle_sample_pts * 50); // sample for 5 cycles
+		return (uint32_t) (cycle_sample_pts * 50); // sample for 50 cycles
 	else
 		return (uint32_t) (cycle_sample_pts * 20);  // sample for 20 cycles
 }
