@@ -55,7 +55,7 @@ namespace SFRA_Host
         SerialPort? mySerialPort = null;
         readonly Thread? bg_thread = null;
         bool connected = false;
-        byte[] rx_buffer = new byte[1500];
+        byte[] rx_buffer = new byte[3000];
         byte[] tx_buffer = new byte[10];
         float start_freq_value = 0.0f;
         float step_freq_value = 0.0f;

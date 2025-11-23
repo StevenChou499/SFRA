@@ -107,7 +107,7 @@ int main(void)
 //  pi_init(ac_pi_p, 2.0f, 500.0f, 100e3f);
 //  pd_init(ac_pd_p, 2.0f, 0.002f, 100e3f);
 //  sfra_init(100e3f, 5.0f, 1.54119f, 10.0f);
-  sec_order_init(ac_2nd_p, 100.0f, 0.1f, 100e3f);
+  sec_order_init(ac_2nd_p, 1000.0f, 0.707f, 100e3f);
 
   HAL_TIM_Base_Start_IT(&htim1);
   HAL_Delay(1000);

@@ -8,7 +8,7 @@
 float sine_table[3600];
 sfra_t sfra;
 
-uint8_t tx_buffer[1500];
+uint8_t tx_buffer[3000];
 uint8_t rx_buffer[10];
 uint32_t tx_len;
 uint8_t rx_len;
@@ -74,9 +74,9 @@ uint32_t sfra_get_sample_count(float sampling_rate_Hz, float target_freq_Hz)
 {
 	float cycle_sample_pts = sampling_rate_Hz / target_freq_Hz;
 	if (cycle_sample_pts <= 5.0f)
-		return (uint32_t) (cycle_sample_pts * 200); // sample for 200 cycles
+		return (uint32_t) (cycle_sample_pts * 20); // sample for 200 cycles
 	if (cycle_sample_pts <= 20.0f)
-		return (uint32_t) (cycle_sample_pts * 50); // sample for 50 cycles
+		return (uint32_t) (cycle_sample_pts * 20); // sample for 50 cycles
 	else
 		return (uint32_t) (cycle_sample_pts * 20);  // sample for 20 cycles
 }
@@ -147,6 +147,8 @@ void sfra_update(void)
 		case SWEEP_DONE:
 			sfra.pha_out[sfra.freq_index] =
 					atan2f(sfra.result[sfra.freq_index].imag, sfra.result[sfra.freq_index].real) / PI * 180.0f + 90.0f;
+			if (sfra.pha_out[sfra.freq_index] >= 180.0f)
+				sfra.pha_out[sfra.freq_index] -= 360.0f;
 			sfra.mag_out[sfra.freq_index] =
 					20.0f * log10f(sqrtf(sfra.result[sfra.freq_index].real * sfra.result[sfra.freq_index].real + sfra.result[sfra.freq_index].imag * sfra.result[sfra.freq_index].imag) / sfra.total_count[sfra.freq_index] * 2.0f / sfra.inject_amplitude);
 			if (sfra.freq_index < sfra.freq_points - 1) {

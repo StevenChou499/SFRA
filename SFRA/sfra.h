@@ -2,8 +2,8 @@
 #include "fourier.h"
 
 #define IRQ_SAMP_FREQ   (100e3f)
-#define MAX_POINTS      (100U)
-#define DELAY_CYCLES    (100U)
+#define MAX_POINTS      (240U)
+#define DELAY_CYCLES    (100000U)
 
 typedef enum rx_state {
 	WAIT_HEAD,
@@ -83,7 +83,7 @@ typedef struct sfra_st {
 } sfra_t;
 
 extern sfra_t sfra;
-extern uint8_t tx_buffer[1500];
+extern uint8_t tx_buffer[3000];
 extern uint8_t rx_buffer[10];
 extern uint32_t tx_len;
 extern uint8_t rx_len;
